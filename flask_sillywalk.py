@@ -1,7 +1,7 @@
 import inspect
 import json
 from collections import defaultdict
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 try:
     from flask import _app_ctx_stack as stack
@@ -73,14 +73,14 @@ class SwaggerApiRegistry(object):
             "basePath": self.baseurl,
             "models": dict(),
             "apis": list()}
-        for resource in self.r.keys():
+        for resource in list(self.r.keys()):
             description = (self.api_descriptions[resource]
                            if resource in self.api_descriptions else "")
             resources["apis"].append({
                 "path": "/" + resource + ".{format}",
                 "description": description})
-        for k, v in self.models.items():
-            resources["models"][k] = v
+#        for k, v in list(self.models.items()):
+#            resources["models"][k] = v
         return resources
 
     def registerModel(self,
@@ -110,15 +110,19 @@ class SwaggerApiRegistry(object):
             argspec.args.remove("self")
             defaults = {}
             if argspec.defaults:
-                defaults = zip(argspec.args[-len(
-                    argspec.defaults):], argspec.defaults)
-            for arg in argspec.args[:-len(defaults)]:
+                defaults = list(zip(argspec.args[-len(
+                    argspec.defaults):], argspec.defaults))
+            for arg in argspec.args[:len(argspec.args) - len(defaults)]:
                 if self.models[c.__name__].get("required") is None:
                     self.models[c.__name__]["required"] = []
                 self.models[c.__name__]["required"].append(arg)
+                self.models[c.__name__]["properties"][arg] = {"type": "string"}
                 #self.models[c.__name__]["required"][arg] = {"required": True}
             for k, v in defaults:
-                self.models[c.__name__]["properties"][k] = {"default": v}
+                self.models[c.__name__]["properties"][k] = {
+                    "default": v,
+                    "type": type(v).__name__
+                }
             return c
 
         return inner_func
@@ -131,7 +135,8 @@ class SwaggerApiRegistry(object):
             parameters=[],
             responseMessages=[],
             nickname=None,
-            notes=None):
+            notes=None,
+            responseClass=None):
         """
         Registers an API endpoint.
 
@@ -174,7 +179,8 @@ class SwaggerApiRegistry(object):
                 params=parameters,
                 responseMessages=responseMessages,
                 nickname=nickname,
-                notes=notes)
+                notes=notes,
+                responseClass=responseClass)
 
             if api.resource not in self.app.view_functions:
                 for fmt in SUPPORTED_FORMATS:
@@ -204,17 +210,21 @@ class SwaggerApiRegistry(object):
                 "swaggerVersion": __SWAGGERVERSION__,
                 "basePath": self.baseurl,
                 "apis": list(),
-                "models": list()
+                "models": dict()
             }
             resource_map = self.r.get(resource)
-            for path, apis in resource_map.items():
+            for path, apis in list(resource_map.items()):
                 api_object = {
                     "path": path,
                     "description": "",
                     "operations": list()}
                 for api in apis:
                     api_object["operations"].append(api.document())
+                    if api.responseClass is not None:
+                        return_value['models'][api.responseClass] = \
+                            self.models[api.responseClass]
                 return_value["apis"].append(api_object)
+
             return json.dumps(return_value)
 
         return inner_func
@@ -242,7 +252,8 @@ class Api(SwaggerDocumentable):
             params=None,
             responseMessages=None,
             nickname=None,
-            notes=None):
+            notes=None,
+            responseClass=None):
         self.httpMethod = httpMethod
         self.summary = method.__doc__ if method.__doc__ is not None else ""
         self.resource = path.lstrip("/").split("/")[0]
@@ -252,12 +263,16 @@ class Api(SwaggerDocumentable):
         self.nickname = "" if nickname is None else nickname
         self.notes = notes
 
+        self.responseClass = responseClass
+
     # See https://github.com/wordnik/swagger-core/wiki/API-Declaration
     def document(self):
         ret = self.__dict__.copy()
         # need to serialize these guys
         ret["parameters"] = [p.document() for p in self.parameters]
         ret["responseMessages"] = [e.document() for e in self.responseMessages]
+        ret["type"] = self.responseClass
+        del ret['responseClass']
         return ret
 
     def __hash__(self):
