@@ -11,6 +11,10 @@ except ImportError:
 __SWAGGERVERSION__ = "1.3"
 SUPPORTED_FORMATS = ["json"]
 
+TYPES = {
+    'str': 'string',
+    'int': 'integer'
+}
 
 class SwaggerRegistryError(Exception):
     """A Swagger registry error"""
@@ -84,6 +88,7 @@ class SwaggerApiRegistry(object):
         return resources
 
     def registerModel(self,
+                      types={},
                       type_="object"):
         """
         Registers a Swagger Model (object).
@@ -112,17 +117,24 @@ class SwaggerApiRegistry(object):
             if argspec.defaults:
                 defaults = list(zip(argspec.args[-len(
                     argspec.defaults):], argspec.defaults))
+
             for arg in argspec.args[:len(argspec.args) - len(defaults)]:
                 if self.models[c.__name__].get("required") is None:
                     self.models[c.__name__]["required"] = []
                 self.models[c.__name__]["required"].append(arg)
-                self.models[c.__name__]["properties"][arg] = {"type": "string"}
-                #self.models[c.__name__]["required"][arg] = {"required": True}
+                self.models[c.__name__]["properties"][arg] = {
+                    "type": "string"
+                }
+
             for k, v in defaults:
                 self.models[c.__name__]["properties"][k] = {
                     "default": v,
-                    "type": type(v).__name__
+                    "type": TYPES[type(v).__name__]
                 }
+
+            for k, v in types.items():
+                self.models[c.__name__]["properties"][k]['type'] = v
+
             return c
 
         return inner_func
@@ -220,15 +232,32 @@ class SwaggerApiRegistry(object):
                     "operations": list()}
                 for api in apis:
                     api_object["operations"].append(api.document())
-                    if api.responseClass is not None:
+
+                    for par in api.parameters:
+                        for m in self.get_referenced_models(par.dataType):
+                            return_value['models'][m] = self.models[m]
+
+#                        if par.dataType in self.models.keys():
+#                            return_value['models'][par.dataType] = \
+#                                self.models[par.dataType]
+
+                    if api.responseClass in self.models:
                         return_value['models'][api.responseClass] = \
                             self.models[api.responseClass]
+
                 return_value["apis"].append(api_object)
 
             return json.dumps(return_value)
 
         return inner_func
 
+    def get_referenced_models(self, data_type):
+        r = []
+        if data_type in self.models.keys():
+            r.append(data_type)
+            for t in self.models[data_type]['properties'].values():
+                r += [v for v in self.get_referenced_models(t['type'])]
+        return r
 
 class SwaggerDocumentable(object):
     """
