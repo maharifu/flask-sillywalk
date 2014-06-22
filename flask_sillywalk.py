@@ -129,7 +129,7 @@ class SwaggerApiRegistry(object):
             for k, v in defaults:
                 self.models[c.__name__]["properties"][k] = {
                     "default": v,
-                    "type": TYPES[type(v).__name__]
+                    "type": "string" if v is None else TYPES[type(v).__name__]
                 }
 
             for k, v in types.items():
