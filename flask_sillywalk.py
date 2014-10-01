@@ -325,13 +325,15 @@ class ApiParameter(SwaggerDocumentable):
             required,
             dataType,
             paramType,
-            allowMultiple=False):
+            allowMultiple=False,
+            defaultValue=None):
         self.name = name
         self.description = description
         self.required = required
         self.dataType = dataType
         self.paramType = paramType
         self.allowMultiple = allowMultiple
+        self.defaultValue = defaultValue
 
     def document(self):
         return self.__dict__
