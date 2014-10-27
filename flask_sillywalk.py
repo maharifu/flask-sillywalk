@@ -8,6 +8,7 @@ if sys.version_info < (3, 0):
 else:
   from urllib.parse import urlparse
 
+from flask import Response
 try:
     from flask import _app_ctx_stack as stack
 except ImportError:
@@ -68,7 +69,8 @@ class SwaggerApiRegistry(object):
         """
 
         def inner_func():
-            return json.dumps(f())
+            return Response(json.dumps(f()),
+                            mimetype='application/json; charset=utf-8')
 
         return inner_func
 
@@ -252,7 +254,8 @@ class SwaggerApiRegistry(object):
 
                 return_value["apis"].append(api_object)
 
-            return json.dumps(return_value)
+            return Response(json.dumps(return_value),
+                            mimetype='application/json; charset=utf-8')
 
         return inner_func
 
