@@ -95,6 +95,8 @@ class SwaggerApiRegistry(object):
         return resources
 
     def registerModel(self,
+                      required={},
+                      optional={},
                       types={},
                       type_="object"):
         """
@@ -141,6 +143,20 @@ class SwaggerApiRegistry(object):
 
             for k, v in types.items():
                 self.models[c.__name__]["properties"][k]['type'] = v
+
+            for k, v in required.items():
+                if self.models[c.__name__].get("required") is None:
+                    self.models[c.__name__]["required"] = []
+
+                if k not in self.models[c.__name__]["required"]:
+                    self.models[c.__name__]["required"].append(k)
+
+                if k not in self.models[c.__name__]["properties"]:
+                    self.models[c.__name__]["properties"][k] = {"type": v}
+
+            for k, v in optional.items():
+                if k not in self.models[c.__name__]["properties"]:
+                    self.models[c.__name__]["properties"][k] = {"type": v}
 
             return c
 
