@@ -14,7 +14,7 @@ try:
 except ImportError:
     from flask import _request_ctx_stack as stack
 
-__SWAGGERVERSION__ = "1.3"
+__SWAGGERVERSION__ = "1.2"
 SUPPORTED_FORMATS = ["json"]
 
 TYPES = {
@@ -183,7 +183,7 @@ class SwaggerApiRegistry(object):
         ...         name="cheeseName",
         ...         description="The name of the cheese to fetch",
         ...         required=True,
-        ...         dataType="str",
+        ...         type="str",
         ...         paramType="path",
         ...         allowMultiple=False)],
         ...     notes='For getting cheese, you know...',
@@ -257,16 +257,20 @@ class SwaggerApiRegistry(object):
                     api_object["operations"].append(api.document())
 
                     for par in api.parameters:
-                        for m in self.get_referenced_models(par.dataType):
+                        for m in self.get_referenced_models(par.type):
                             return_value['models'][m] = self.models[m]
 
-#                        if par.dataType in self.models.keys():
-#                            return_value['models'][par.dataType] = \
-#                                self.models[par.dataType]
+#                        if par.type in self.models.keys():
+#                            return_value['models'][par.type] = \
+#                                self.models[par.type]
 
                     if api.responseClass in self.models:
                         return_value['models'][api.responseClass] = \
                             self.models[api.responseClass]
+
+                    if api.responseClass == 'array':
+                        return_value['models'][api.items['$ref']] = \
+                            self.models[api.items['$ref']]
 
                 return_value["apis"].append(api_object)
 
@@ -316,7 +320,12 @@ class Api(SwaggerDocumentable):
         self.nickname = "" if nickname is None else nickname
         self.notes = notes
 
-        self.responseClass = responseClass
+        # FIXME
+        if responseClass[0] == '[':
+            self.responseClass = 'array'
+            self.items = {'$ref': responseClass[1:-1]}
+        else:
+            self.responseClass = responseClass
 
     # See https://github.com/wordnik/swagger-core/wiki/API-Declaration
     def document(self):
@@ -342,14 +351,14 @@ class ApiParameter(SwaggerDocumentable):
             name,
             description,
             required,
-            dataType,
+            type,
             paramType,
             allowMultiple=False,
             defaultValue=None):
         self.name = name
         self.description = description
         self.required = required
-        self.dataType = dataType
+        self.type = type
         self.paramType = paramType
         self.allowMultiple = allowMultiple
         self.defaultValue = defaultValue

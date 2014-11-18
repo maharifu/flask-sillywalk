@@ -38,7 +38,7 @@ class SomeCrazyClass(object):
             name="cheeseName",
             description="The name of the cheese to fetch",
             required=True,
-            dataType="str",
+            type="str",
             paramType="path",
             allowMultiple=False)],
     notes='For getting cheese, you know...',
@@ -59,7 +59,7 @@ def get_cheese(cheeseName):
             name="number",
             description="The number of hand grenades to get",
             required=True,
-            dataType="int",
+            type="int",
             paramType="path",
             allowMultiple=False)])
 def get_a_holy_hand_grenade(number):
@@ -75,14 +75,14 @@ def get_a_holy_hand_grenade(number):
             name="number",
             description="The number of seconds to wait",
             required=True,
-            dataType="int",
+            type="int",
             paramType="path",
             allowMultiple=False),
         ApiParameter(
             name="target",
             description="At whom should I thrown the hand grenade?",
             required=False,
-            dataType="str",
+            type="str",
             paramType="query",
             allowMultiple=False)])
 def toss_the_grenade(number):

@@ -75,7 +75,7 @@ def get_random_cheese():
         name="cheeseName",
         description="The name of the cheese to fetch",
         required=True,
-        dataType="str",
+        type="str",
         paramType="path",
         allowMultiple=False)
   ],
