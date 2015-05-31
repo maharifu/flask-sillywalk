@@ -354,7 +354,8 @@ class ApiParameter(SwaggerDocumentable):
             type,
             paramType,
             allowMultiple=False,
-            defaultValue=None):
+            defaultValue=None,
+            enum=None):
         self.name = name
         self.description = description
         self.required = required
@@ -362,6 +363,7 @@ class ApiParameter(SwaggerDocumentable):
         self.paramType = paramType
         self.allowMultiple = allowMultiple
         self.defaultValue = defaultValue
+        self.enum = enum
 
     def document(self):
         return self.__dict__
